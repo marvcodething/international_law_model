@@ -39,12 +39,53 @@ cp .env.template .env
 
 ### Running the Application
 
+<<<<<<< HEAD
+=======
+#### Option 1: Standard Python Setup
+>>>>>>> 94111d2 (docker!)
 ```bash
 streamlit run app.py
 ```
 
+<<<<<<< HEAD
 Open http://localhost:8501 in your browser.
 
+=======
+#### Option 2: Docker (Recommended)
+```bash
+# Using Docker Compose (easiest)
+docker-compose up
+
+# Or build and run manually
+docker build -t contract-analysis-platform .
+docker run -p 8501:8501 contract-analysis-platform
+```
+
+Open http://localhost:8501 in your browser.
+
+### Docker Deployment
+
+The application is fully containerized for easy deployment:
+
+```bash
+# Quick start with Docker Compose
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop application
+docker-compose down
+```
+
+#### Environment Variables for Docker
+Create a `.env` file for API keys:
+```bash
+ANTHROPIC_API_KEY=your_api_key_here
+ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
+```
+
+>>>>>>> 94111d2 (docker!)
 ## Usage
 
 1. Upload a contract (PDF, DOCX, or text)
