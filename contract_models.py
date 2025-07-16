@@ -1,3 +1,9 @@
+"""Contract BERT Analysis Module
+
+Provides BERT-based legal contract analysis for multiple jurisdictions.
+Extensible architecture for adding new countries and models.
+"""
+
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import logging
@@ -7,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class ContractBERTAnalyzer:
-    """Contract analysis using BERT models for US and Indian law"""
+    """Multi-jurisdiction contract analysis using BERT models"""
     
     def __init__(self):
         self.us_model = None
@@ -17,7 +23,6 @@ class ContractBERTAnalyzer:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logger.info(f"Using device: {self.device}")
         
-        # Contract clause types
         self.us_clause_types = [
             "Termination", "Payment", "Liability", "Confidentiality", 
             "Intellectual Property", "Governing Law", "Dispute Resolution",
@@ -31,10 +36,9 @@ class ContractBERTAnalyzer:
             "Term", "Compliance", "Registration", "Stamp Duty"
         ]
     
+    # FUNC: Load jurisdiction-specific BERT models
     def load_models(self):
-        """Load pre-trained BERT models"""
         try:
-            # US Legal BERT - Fine-tuned for contracts
             logger.info("Loading US Legal BERT model...")
             us_model_name = "muhtasham/bert-tiny-finetuned-legal-contracts-longer"
             self.us_tokenizer = AutoTokenizer.from_pretrained(us_model_name)
@@ -44,7 +48,6 @@ class ContractBERTAnalyzer:
             )
             self.us_model.to(self.device)
             
-            # Indian Legal BERT
             logger.info("Loading Indian Legal BERT model...")
             self.indian_tokenizer = AutoTokenizer.from_pretrained("law-ai/InLegalBERT")
             self.indian_model = AutoModelForSequenceClassification.from_pretrained(
@@ -57,11 +60,10 @@ class ContractBERTAnalyzer:
             
         except Exception as e:
             logger.error(f"Error loading models: {e}")
-            # Fallback to simpler models if specialized ones aren't available
             self._load_fallback_models()
     
+    # FUNC: Fallback model loading for robustness
     def _load_fallback_models(self):
-        """Load fallback models if contract-specific ones aren't available"""
         logger.info("Loading fallback models...")
         model_name = "distilbert-base-uncased"
         
@@ -80,8 +82,11 @@ class ContractBERTAnalyzer:
         self.us_model.to(self.device)
         self.indian_model.to(self.device)
     
+    # FUNC: Single clause classification
+    # PARAM: text - clause text to classify
+    # PARAM: jurisdiction - target legal system(s)
+    # RETURN: classification results dict
     def classify_clause(self, text: str, jurisdiction: str = "both") -> Dict:
-        """Classify a single clause"""
         results = {}
         
         if jurisdiction in ["us", "both"]:

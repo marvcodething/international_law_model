@@ -1,3 +1,9 @@
+"""Contract Analysis Platform - Main Streamlit Application
+
+Open-source legal contract analysis system supporting multiple jurisdictions.
+Contributors can easily add new countries and trained models.
+"""
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -6,10 +12,8 @@ from plotly.subplots import make_subplots
 import traceback
 import os
 
-# Set environment variable to avoid tokenizer warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-# Page configuration
 st.set_page_config(
     page_title="International Contract Analysis",
     page_icon="⚖️",
@@ -17,7 +21,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Initialize session state with error handling
 try:
     from contract_models import ContractBERTAnalyzer
     from analysis_service import ContractAnalysisService
@@ -32,15 +35,14 @@ except Exception as e:
     st.error(f"Error importing modules: {str(e)}")
     st.stop()
 
+# FUNC: Main application entry point
 def main():
-    st.title("⚖️ International Contract Analysis System")
-    st.markdown("### AI-powered contract analysis for US and Indian jurisdictions")
+    st.title("⚖️ International Contract Analysis Platform")
+    st.markdown("### Open-source legal analysis for multiple jurisdictions")
     
-    # Sidebar
     with st.sidebar:
         st.header("Configuration")
         
-        # Jurisdiction selection
         jurisdiction = st.selectbox(
             "Select Jurisdiction(s)",
             ["both", "us", "indian"],
@@ -51,15 +53,12 @@ def main():
             }[x]
         )
         
-        # Analysis options
         st.subheader("Analysis Options")
         include_risk_assessment = st.checkbox("Include Risk Assessment", value=True)
         include_comparison = st.checkbox("Include Jurisdiction Comparison", value=True)
         
-        # Model status
         st.subheader("Model Status")
         
-        # Show current model status
         if hasattr(st.session_state, 'models_loaded') and st.session_state.models_loaded:
             st.success("✅ Models loaded")
         else:
@@ -75,7 +74,6 @@ def main():
                 st.error(f"Failed to load models: {str(e)}")
                 st.info("The app will still work with fallback models.")
     
-    # Main content area
     tab1, tab2, tab3, tab4 = st.tabs(["📄 Contract Analysis", "📊 Results Dashboard", "🔍 Clause Explorer", "💬 AI Assistant"])
     
     with tab1:
@@ -90,17 +88,16 @@ def main():
     with tab4:
         chatbot_tab()
 
+# FUNC: Contract upload and analysis interface
 def contract_analysis_tab(jurisdiction, include_risk_assessment, include_comparison):
     st.header("Contract Upload & Analysis")
     
-    # File upload
     uploaded_file = st.file_uploader(
         "Upload Contract Document",
         type=["pdf", "docx", "txt"],
         help="Supported formats: PDF, DOCX, TXT"
     )
     
-    # Text input alternative
     st.markdown("**Or paste contract text directly:**")
     contract_text = st.text_area(
         "Contract Text",
@@ -114,27 +111,25 @@ def contract_analysis_tab(jurisdiction, include_risk_assessment, include_compari
         else:
             st.error("Please upload a file or enter contract text.")
 
+# FUNC: Core contract analysis orchestration
+# PARAM: uploaded_file - File object or None
+# PARAM: contract_text - Raw text input
+# PARAM: jurisdiction - Analysis scope (us/indian/both)
 def analyze_contract(uploaded_file, contract_text, jurisdiction, include_risk_assessment, include_comparison):
-    """Perform contract analysis"""
-    
     with st.spinner("Analyzing contract..."):
         try:
-            # Extract text from file if uploaded
             if uploaded_file is not None:
                 contract_text = st.session_state.service.extract_text_from_file(uploaded_file)
                 st.success(f"✅ Extracted text from {uploaded_file.name}")
             
-            # Progress bar
             progress_bar = st.progress(0)
             status_text = st.empty()
             
-            # Step 1: Clause extraction and classification
             status_text.text("Extracting and classifying clauses...")
             progress_bar.progress(25)
             
             analysis_results = st.session_state.analyzer.analyze_contract(contract_text, jurisdiction)
             
-            # Step 2: Risk assessment
             if include_risk_assessment:
                 status_text.text("Generating risk assessment...")
                 progress_bar.progress(50)
@@ -150,7 +145,6 @@ def analyze_contract(uploaded_file, contract_text, jurisdiction, include_risk_as
                 
                 analysis_results["risk_assessments"] = risk_assessments
             
-            # Step 3: Jurisdiction comparison
             if include_comparison and jurisdiction == "both":
                 status_text.text("Comparing jurisdictions...")
                 progress_bar.progress(75)
@@ -164,21 +158,16 @@ def analyze_contract(uploaded_file, contract_text, jurisdiction, include_risk_as
             progress_bar.progress(100)
             status_text.text("Analysis complete!")
             
-            # Store results in session state
             st.session_state.analysis_results = analysis_results
-            
-            # Display results
             display_analysis_results(analysis_results, jurisdiction)
             
         except Exception as e:
             st.error(f"Analysis failed: {str(e)}")
 
+# FUNC: Display comprehensive analysis results
 def display_analysis_results(results, jurisdiction):
-    """Display analysis results"""
-    
     st.success(f"✅ Analysis completed! Found {results['total_clauses']} clauses.")
     
-    # Summary cards
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -194,21 +183,17 @@ def display_analysis_results(results, jurisdiction):
             indian_risk = results["summary"]["indian"]["overall_risk"]
             st.metric("Indian Risk Level", indian_risk.upper(), delta=None)
     
-    # Risk distribution charts
     if len(results["summary"]) > 0:
         st.subheader("📊 Risk Distribution")
         display_risk_charts(results["summary"])
     
-    # Clause analysis table
     st.subheader("📋 Clause Analysis Details")
     display_clause_table(results["clause_analyses"], jurisdiction)
     
-    # Risk assessments
     if "risk_assessments" in results:
         st.subheader("⚠️ Risk Assessment")
         display_risk_assessments(results["risk_assessments"])
     
-    # Jurisdiction comparison
     if "comparison" in results:
         st.subheader("🔍 Jurisdiction Comparison")
         st.text_area(
@@ -217,9 +202,8 @@ def display_analysis_results(results, jurisdiction):
             height=300
         )
 
+# FUNC: Render risk distribution pie charts
 def display_risk_charts(summary):
-    """Display risk distribution charts"""
-    
     fig = make_subplots(
         rows=1, cols=len(summary),
         specs=[[{"type": "pie"}] * len(summary)],
@@ -245,10 +229,8 @@ def display_risk_charts(summary):
     fig.update_layout(height=400, title_text="Risk Distribution by Jurisdiction")
     st.plotly_chart(fig, use_container_width=True)
 
+# FUNC: Render clause analysis data table with risk highlighting
 def display_clause_table(clause_analyses, jurisdiction):
-    """Display clause analysis in table format"""
-    
-    # Prepare data for table
     table_data = []
     
     for analysis in clause_analyses:
@@ -280,10 +262,8 @@ def display_clause_table(clause_analyses, jurisdiction):
     
         table_data.append(row)
     
-    # Display table
     df = pd.DataFrame(table_data)
     
-    # Color code risk levels
     def highlight_risk(val):
         if isinstance(val, str):
             if "high" in val.lower():
@@ -297,17 +277,15 @@ def display_clause_table(clause_analyses, jurisdiction):
     styled_df = df.style.map(highlight_risk)
     st.dataframe(styled_df, use_container_width=True)
 
+# FUNC: Display jurisdiction-specific risk assessments
 def display_risk_assessments(risk_assessments):
-    """Display risk assessments"""
-    
     for juris, assessment in risk_assessments.items():
         with st.expander(f"{juris.upper()} Jurisdiction Risk Assessment"):
             st.markdown(assessment["detailed_assessment"])
             st.caption(f"Generated by: {assessment['generated_by']}")
 
+# FUNC: Results dashboard with charts and metrics
 def results_dashboard_tab():
-    """Results dashboard tab"""
-    
     if st.session_state.analysis_results is None:
         st.info("👆 Please analyze a contract first to see the dashboard.")
         return
@@ -316,7 +294,6 @@ def results_dashboard_tab():
     
     st.header("📊 Analysis Dashboard")
     
-    # Clause type distribution
     if "summary" in results:
         for juris, summary in results["summary"].items():
             st.subheader(f"{juris.upper()} Jurisdiction - Clause Types")
@@ -334,9 +311,8 @@ def results_dashboard_tab():
                 fig.update_layout(xaxis_tickangle=45)
                 st.plotly_chart(fig, use_container_width=True)
 
+# FUNC: Individual clause examination interface
 def clause_explorer_tab():
-    """Clause explorer tab"""
-    
     if st.session_state.analysis_results is None:
         st.info("👆 Please analyze a contract first to explore clauses.")
         return
@@ -346,7 +322,6 @@ def clause_explorer_tab():
     results = st.session_state.analysis_results
     clause_analyses = results["clause_analyses"]
     
-    # Clause selector
     clause_options = [f"Clause {analysis['clause_id']}" for analysis in clause_analyses]
     selected_clause = st.selectbox("Select a clause to examine:", clause_options)
     
@@ -360,10 +335,8 @@ def clause_explorer_tab():
         if clause_data:
             st.subheader(f"Clause {clause_id} Details")
             
-            # Full clause text
             st.text_area("Full Clause Text", clause_data["text"], height=150)
             
-            # Analysis details
             col1, col2 = st.columns(2)
             
             with col1:
@@ -382,12 +355,11 @@ def clause_explorer_tab():
                     st.write(f"**Risk:** {indian_data['risk_level']}")
                     st.write(f"**Confidence:** {indian_data['confidence']:.3f}")
 
+# FUNC: AI chatbot interface for contract Q&A
 def chatbot_tab():
-    """AI Assistant chatbot tab"""
     st.header("🤖 AI Legal Assistant")
     st.markdown("Ask questions about your contract analysis, jurisdiction differences, and legal implications.")
     
-    # Check if contract has been analyzed
     if st.session_state.analysis_results is None:
         st.info("👆 Please analyze a contract first to enable the AI assistant.")
         st.markdown("""
@@ -400,11 +372,9 @@ def chatbot_tab():
         """)
         return
     
-    # Initialize chat history in session state
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
     
-    # Display chat history
     for i, message in enumerate(st.session_state.chat_history):
         if message["role"] == "user":
             with st.chat_message("user"):
@@ -413,18 +383,14 @@ def chatbot_tab():
             with st.chat_message("assistant"):
                 st.write(message["content"])
     
-    # Chat input
     user_question = st.chat_input("Ask me anything about your contract analysis...")
     
     if user_question:
-        # Add user message to history
         st.session_state.chat_history.append({"role": "user", "content": user_question})
         
-        # Display user message
         with st.chat_message("user"):
             st.write(user_question)
         
-        # Generate response
         with st.chat_message("assistant"):
             with st.spinner("Analyzing your question..."):
                 try:
@@ -433,8 +399,6 @@ def chatbot_tab():
                         st.session_state.analysis_results
                     )
                     st.write(response)
-                    
-                    # Add assistant response to history
                     st.session_state.chat_history.append({"role": "assistant", "content": response})
                     
                 except Exception as e:
@@ -442,7 +406,6 @@ def chatbot_tab():
                     st.error(error_msg)
                     st.session_state.chat_history.append({"role": "assistant", "content": error_msg})
     
-    # Sidebar with suggested questions
     with st.sidebar:
         if st.session_state.analysis_results is not None:
             st.markdown("### 💡 Suggested Questions")
@@ -459,7 +422,6 @@ def chatbot_tab():
             
             for question in suggested_questions:
                 if st.button(question, key=f"suggest_{hash(question)}"):
-                    # Trigger the question
                     st.session_state.chat_history.append({"role": "user", "content": question})
                     
                     try:
@@ -474,7 +436,6 @@ def chatbot_tab():
                         st.session_state.chat_history.append({"role": "assistant", "content": error_msg})
                         st.rerun()
             
-            # Clear chat button
             if st.button("🗑️ Clear Chat History"):
                 st.session_state.chat_history = []
                 st.rerun()
